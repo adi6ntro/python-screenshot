@@ -1,0 +1,6 @@
+EasyProcess==1.1
+entrypoint2==1.1
+mss==7.0.1
+Pillow==9.3.0
+pyscreenshot==3.0
+# pypiwin32
