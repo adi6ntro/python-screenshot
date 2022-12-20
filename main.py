@@ -20,7 +20,7 @@ logo = tk.Label(root, image=my_img1)
 canvas.create_window(150, 20, window=logo)
 
 label = tk.Entry(root, font=('helvetica', 10),
-                 bd=0, width=46)
+                 bd=0, width=30, justify='center')
 canvas.create_window(150, 80, window=label)
 
 
@@ -37,7 +37,8 @@ def clip_screen():
         return e
     root.deiconify()
     print("button clicked")
-    return f"{ROOT_DIR}/{image_name}"
+    # return f"{ROOT_DIR}/{image_name}"
+    return f"{image_name}"
 
 
 def hide_window():

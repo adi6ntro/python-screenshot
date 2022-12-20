@@ -17,5 +17,5 @@ to build exe file:
 
 ```
 pip3 install pyinstaller
-pyinstaller --onefile --icon=swc.ico main.py
+pyinstaller --onefile --icon=swc.ico -w main.py
 ```
