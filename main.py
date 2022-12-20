@@ -5,6 +5,7 @@ import pyscreenshot as ImageGrab
 import os
 import tkinter as tk
 
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 if not (os.path.isdir("snips")):
     os.mkdir("snips")
 
@@ -36,7 +37,7 @@ def clip_screen():
         return e
     root.deiconify()
     print("button clicked")
-    return "Screenshot saved as " + image_name
+    return f"{ROOT_DIR}/{image_name}"
 
 
 def hide_window():
