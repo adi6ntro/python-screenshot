@@ -1,7 +1,7 @@
 from datetime import datetime
 from functools import partial
 from io import BytesIO
-from PIL import Image
+from PIL import Image, ImageTk
 import os
 import time
 import pyscreenshot as ImageGrab
@@ -13,6 +13,8 @@ if not (os.path.isdir("snips")):
 
 root = tk.Tk()
 root.title("SWC Screenshot App")
+root.iconbitmap(
+    "swc.png")
 canvas = tk.Canvas(root, width=500, height=250, bg="lightblue")
 
 copy_clip = tk.IntVar()
@@ -63,6 +65,9 @@ def clip_screen(dimensions):
         else:
             image = ImageGrab.grab()
         image.save(image_name)
+        # my_img = ImageTk.PhotoImage(Image.open(image_name))
+        # my_label = tk.Label(image=my_img)
+        # my_label.pack()
 
         # if copy_clip.get():
         #     copy_to_clipboard(image_name)
@@ -76,7 +81,8 @@ def clip_screen(dimensions):
         return e
     root.deiconify()
     print("button clicked")
-    return "Screenshot saved as " + image_name
+    # return "Screenshot saved as " + image_name
+    return image_name
 
 
 def hide_window():
@@ -86,7 +92,11 @@ def hide_window():
 
 
 def get_fullscreen():
-    label.configure(text=clip_screen(None))
+    # label.configure(text=clip_screen(None))
+    my_img = ImageTk.PhotoImage(Image.open(clip_screen(None)))
+    label.configure(image=my_img)
+    # my_label = tk.Label(image=my_img)
+    # my_label.pack()
 
 
 def get_dimensions():
