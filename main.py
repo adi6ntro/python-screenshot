@@ -31,14 +31,23 @@ def clip_screen():
     try:
         image = ImageGrab.grab(childprocess=False)
         image.save(image_name)
-        image.show()
+        # image.show()
+        # top = tk.Toplevel(win)
+        # im1 = ImageTk.PhotoImage(im1)
+
+        # Add the image in the label widget
+        # image1 = tk.Label(top, image=im1)
+        # image1.image = im1
+        # image1.place(x=0, y=0)
+
     except Exception as e:
         print(e)
         return e
     root.deiconify()
     print("button clicked")
+    my_path = os.path.abspath(image_name)
     # return f"{ROOT_DIR}/{image_name}"
-    return f"{image_name}"
+    return f"{my_path}"
 
 
 def hide_window():
@@ -47,8 +56,10 @@ def hide_window():
 
 
 def get_fullscreen():
-    label.insert(0, clip_screen())
+    my_path = clip_screen()
+    label.insert(0, my_path)
     label.config(bd=0, state='readonly')
+    os.system(my_path) 
 
 
 fs_button = tk.Button(text="Take Full Screen",
