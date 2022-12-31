@@ -1,0 +1,10 @@
+import tkinter as tk  # fixed typo in here
+w = tk.Tk()
+a = tk.Canvas(w, width=20, height=30, bg="red")
+# a.place(x=20, y=30)
+a.pack()
+b = tk.Canvas(w, width=20, height=30, bg="blue")
+# b.place(x=25, y=35)
+b.pack()
+tk.Misc.lift(a)
+w.mainloop()
