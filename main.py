@@ -2,7 +2,7 @@ from datetime import datetime
 from functools import partial
 from PIL import Image, ImageTk
 from sys import platform
-from tkinter import Tk, filedialog, Frame, Button, Canvas, Label, Entry
+from tkinter import Tk, filedialog, Frame, Button, Canvas, Label, Entry, LabelFrame, Scrollbar, Text
 import pyscreenshot as ImageGrab
 import os
 
@@ -16,13 +16,42 @@ class Gui():
         self.rect = None
         self.start_x = None
         self.start_y = None
+        self.outline = "#%02x%02x%02x" % (255, 0, 0)
         self.screenshot_widgets()
         self.create_widgets()
-        # Button(self.master, text="Add Box Shape", command=self.on_click).pack()
+        # Button(self.master, text="Add Box Shape", command=self.on_click).grid()
+        Button(self.master, text="Box - Not Exposed",
+               command=lambda: self.outline_color('Not_Exposed_')).grid()
+        Button(self.master, text="Box - Exposed",
+               command=lambda: self.outline_color('Exposed_')).grid()
+        Button(self.master, text="Box - Periapical",
+               command=lambda: self.outline_color('Periapical_')).grid()
+        Button(self.master, text="Box - Bone_Loss",
+               command=lambda: self.outline_color('Bone_Loss')).grid()
+        Button(self.master, text="Box - RCT",
+               command=lambda: self.outline_color('RCT')).grid()
         Button(self.master, text="Delete Image",
-               command=self.delete_image).pack()
+               command=self.delete_image).grid()
         Button(self.master, text="Delete Box",
-               command=self.delete_box).pack()
+               command=self.delete_box).grid()
+
+    def outline_color(self, color_type):
+        print(color_type)
+        if color_type == "Not_Exposed_":
+            color = (255, 0, 0)
+        elif color_type == "Exposed_":
+            color = (0, 0, 255)
+        elif color_type == "Periapical_":
+            color = (0, 255, 0)
+        elif color_type == "Bone_Loss":
+            color = (0, 153, 255)
+        elif color_type == "RCT":
+            color = (255, 82, 141)
+        else:
+            color = (255, 0, 0)
+        self.outline = "#%02x%02x%02x" % color
+        self.canvas.delete(self.rect)
+        self.rect = None
 
     def screenshot_widgets(self):
         self.canvas_top = Canvas(self.master, width=300, height=100)
@@ -43,13 +72,15 @@ class Gui():
                                 font=("Sans Serif", 9))
         self.canvas_top.create_window(150, 50, window=fs_button)
 
-        self.canvas_top.pack()
+        self.canvas_top.grid()
 
     def create_widgets(self):
         self.select = Button(
             self.master, text="select an image", command=self.select_image)
-        self.select.pack()
-        self.canvas = Canvas(self.master, width=400,
+        self.select.grid()
+
+        my_frame = LabelFrame(self.master, text='Image')
+        self.canvas = Canvas(my_frame, width=400,
                              height=400, bg="grey", cursor="cross")
 
         self.canvas.bind("<ButtonPress-1>", self.on_button_press)
@@ -58,7 +89,17 @@ class Gui():
         self.canvas.bind("<Configure>", lambda e: self.canvas.config(
             scrollregion=self.canvas.bbox("all")))
 
-        self.canvas.pack()
+        self.canvas.grid(sticky='nesw')
+        my_scrollbary = Scrollbar(my_frame)
+        my_scrollbarx = Scrollbar(my_frame)
+        my_scrollbary.grid(row=0, column=1, sticky='nse')
+        my_scrollbarx.grid(row=1, column=0, sticky='new')
+        my_frame.grid(sticky='nsew')
+
+        my_scrollbary.configure(command=self.canvas.yview)
+        my_scrollbarx.configure(command=self.canvas.xview)
+        self.canvas.configure(yscrollcommand=my_scrollbary.set)
+        self.canvas.configure(xscrollcommand=my_scrollbarx.set)
 
     def on_button_press(self, event):
         # save mouse drag start position
@@ -68,8 +109,7 @@ class Gui():
         # create rectangle if not yet exist
         if not self.rect:
             self.rect = self.canvas.create_rectangle(
-                self.x, self.y, 1, 1, outline='red', width=3)
-            self.num_list.insert(0, self.rect)
+                self.x, self.y, 1, 1, outline=self.outline, width=3)
 
     def on_move_press(self, event):
         curX = self.canvas.canvasx(event.x)
@@ -94,7 +134,8 @@ class Gui():
         coordinates = self.start_x, self.start_y, curX, curY
         # print(coordinates)
         cek = self.canvas.create_rectangle(
-            coordinates, outline='red', width=3)
+            coordinates, outline=self.outline, width=3)
+        # print(self.canvas.coords(cek))
         self.num_list.insert(0, cek)
 
     def select_image(self):
@@ -111,7 +152,8 @@ class Gui():
     def on_click(self):
         coordinates = 50, 0, 100, 50
         self.canvas.create_rectangle(
-            coordinates, outline='red', width=3)
+            coordinates, outline=self.outline, width=3)
+        # color change
         # self.num += 1
         # self.num_list.insert(0, self.num)
 
