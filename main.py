@@ -2,7 +2,7 @@ from datetime import datetime
 from functools import partial
 from PIL import Image, ImageTk
 from sys import platform
-from tkinter import Tk, filedialog, Frame, Button, Canvas, Label, Entry, LabelFrame, Scrollbar, Text
+from tkinter import Tk, filedialog, Frame, Button, Canvas, Label, Entry, LabelFrame, Scrollbar, Text, StringVar, OptionMenu, E, W
 import pyscreenshot as ImageGrab
 import os
 
@@ -20,20 +20,27 @@ class Gui():
         self.screenshot_widgets()
         self.create_widgets()
         # Button(self.master, text="Add Box Shape", command=self.on_click).grid()
-        Button(self.master, text="Box - Not Exposed",
-               command=lambda: self.outline_color('Not_Exposed_')).grid()
-        Button(self.master, text="Box - Exposed",
-               command=lambda: self.outline_color('Exposed_')).grid()
-        Button(self.master, text="Box - Periapical",
-               command=lambda: self.outline_color('Periapical_')).grid()
-        Button(self.master, text="Box - Bone_Loss",
-               command=lambda: self.outline_color('Bone_Loss')).grid()
-        Button(self.master, text="Box - RCT",
-               command=lambda: self.outline_color('RCT')).grid()
+        # Button(self.master, text="Box - Not Exposed",
+        #        command=lambda: self.outline_color('Not_Exposed_')).grid()
+        # Button(self.master, text="Box - Exposed",
+        #        command=lambda: self.outline_color('Exposed_')).grid()
+        # Button(self.master, text="Box - Periapical",
+        #        command=lambda: self.outline_color('Periapical_')).grid()
+        # Button(self.master, text="Box - Bone_Loss",
+        #        command=lambda: self.outline_color('Bone_Loss')).grid()
+        # Button(self.master, text="Box - RCT",
+        #        command=lambda: self.outline_color('RCT')).grid()
         Button(self.master, text="Delete Image",
                command=self.delete_image).grid()
         Button(self.master, text="Delete Box",
                command=self.delete_box).grid()
+        Button(self.master, text="Get Box",
+               command=self.get_box).grid()
+
+    def get_box(self):
+        for r in self.num_list:
+            Button(self.master, text="Box " + str(r),
+                   command=self.delete_box).grid()
 
     def outline_color(self, color_type):
         print(color_type)
@@ -101,6 +108,38 @@ class Gui():
         self.canvas.configure(yscrollcommand=my_scrollbary.set)
         self.canvas.configure(xscrollcommand=my_scrollbarx.set)
 
+        cat_frame = Frame(self.master)
+        cat_frame.columnconfigure(1, weight=1)
+        self.categories = ['Not Exposed', 'Exposed',
+                           'Periapical', 'Bone Loss', 'RCT']
+        self.cat_var = StringVar(cat_frame)
+        self.cat_var.set(self.categories[0])
+        cat_label = Label(cat_frame, text='Category: ')
+        cat_label.grid(sticky=E + W, padx=5, pady=5)
+        self.cat_inp = OptionMenu(cat_frame, self.cat_var, *self.categories)
+        self.cat_inp.grid(row=0, column=1, sticky=E + W, padx=5, pady=5)
+        cat_frame.grid(sticky='ew')
+        self.cat_var.trace("w", self.outline_change)
+
+    def outline_change(self, *args):
+        color_type = self.cat_var.get()
+        if color_type == "Not Exposed":
+            color = (255, 0, 0)
+        elif color_type == "Exposed":
+            color = (0, 0, 255)
+        elif color_type == "Periapical":
+            color = (0, 255, 0)
+        elif color_type == "Bone Loss":
+            color = (0, 153, 255)
+        elif color_type == "RCT":
+            color = (255, 82, 141)
+        else:
+            color = (255, 0, 0)
+        print(color_type)
+        self.outline = "#%02x%02x%02x" % color
+        self.canvas.delete(self.rect)
+        self.rect = None
+
     def on_button_press(self, event):
         # save mouse drag start position
         self.start_x = self.canvas.canvasx(event.x)
@@ -160,13 +199,29 @@ class Gui():
     def delete_box(self):
         # self.canvas.delete("all")
         if len(self.num_list) > 0:
-            self.canvas.delete(self.num_list[0])
-            self.num_list.pop(0)
+            if self.rect and self.num_list[0] < self.rect:
+                self.canvas.delete(self.rect)
+                self.rect = None
+            else:
+                self.canvas.delete(self.num_list[0])
+                self.num_list.pop(0)
+        # elif self.rect and len(self.num_list) == 0:
+        #     self.canvas.delete(self.rect)
+        #     self.rect = None
 
     def delete_image(self):
         if self.num > 0:
             self.canvas.delete(self.num)
             self.num = 0
+
+    def delete_box_opt(self):
+        self.categories.pop(0)
+        menu = self.cat_inp["menu"]
+        menu.delete(0, "end")
+        for string in self.categories:
+            menu.add_command(label=string,
+                             command=lambda value=string: self.cat_var.set(value))
+        self.cat_var.set(self.categories[0])
 
     def clip_screen(self):
         # self.master.withdraw()
@@ -207,6 +262,7 @@ if __name__ == "__main__":
     root = Tk()
     root.title("SWC Screenshot App")
     root.iconbitmap("swc.ico")
-    root.resizable(0, 0)
+    # root.resizable(0, 0)
     my_gui = Gui(root)
+    root.call('wm', 'attributes', '.', '-topmost', '1')
     root.mainloop()
