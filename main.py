@@ -11,6 +11,9 @@ class Gui():
     def __init__(self, master):
         self.master = master
         self.num_list = []
+        self.box_delete = {}
+        self.cat = {"Not Exposed": 0, "Exposed": 0,
+                    "Periapical": 0, "Bone Loss": 0, "RCT": 0}
         self.num = 0
         self.x = self.y = 0
         self.rect = None
@@ -18,7 +21,7 @@ class Gui():
         self.start_y = None
         self.outline = "#%02x%02x%02x" % (255, 0, 0)
         self.screenshot_widgets()
-        self.create_widgets()
+        self.create_canvas()
         # Button(self.master, text="Add Box Shape", command=self.on_click).grid()
         # Button(self.master, text="Box - Not Exposed",
         #        command=lambda: self.outline_color('Not_Exposed_')).grid()
@@ -32,33 +35,35 @@ class Gui():
         #        command=lambda: self.outline_color('RCT')).grid()
         Button(self.master, text="Delete Image",
                command=self.delete_image).grid()
-        Button(self.master, text="Delete Box",
-               command=self.delete_box).grid()
-        Button(self.master, text="Get Box",
-               command=self.get_box).grid()
+        self.create_categories()
+        self.create_box_list()
+        # Button(self.master, text="Delete Box",
+        #        command=self.delete_box).grid()
+        # Button(self.master, text="Get Box",
+        #        command=self.get_box).grid()
 
-    def get_box(self):
-        for r in self.num_list:
-            Button(self.master, text="Box " + str(r),
-                   command=self.delete_box).grid()
+    # def get_box(self):
+    #     for r in self.num_list:
+    #         Button(self.master, text="Box " + str(r),
+    #                command=self.delete_box).grid()
 
-    def outline_color(self, color_type):
-        print(color_type)
-        if color_type == "Not_Exposed_":
-            color = (255, 0, 0)
-        elif color_type == "Exposed_":
-            color = (0, 0, 255)
-        elif color_type == "Periapical_":
-            color = (0, 255, 0)
-        elif color_type == "Bone_Loss":
-            color = (0, 153, 255)
-        elif color_type == "RCT":
-            color = (255, 82, 141)
-        else:
-            color = (255, 0, 0)
-        self.outline = "#%02x%02x%02x" % color
-        self.canvas.delete(self.rect)
-        self.rect = None
+    # def outline_color(self, color_type):
+    #     print(color_type)
+    #     if color_type == "Not_Exposed_":
+    #         color = (255, 0, 0)
+    #     elif color_type == "Exposed_":
+    #         color = (0, 0, 255)
+    #     elif color_type == "Periapical_":
+    #         color = (0, 255, 0)
+    #     elif color_type == "Bone_Loss":
+    #         color = (0, 153, 255)
+    #     elif color_type == "RCT":
+    #         color = (255, 82, 141)
+    #     else:
+    #         color = (255, 0, 0)
+    #     self.outline = "#%02x%02x%02x" % color
+    #     self.canvas.delete(self.rect)
+    #     self.rect = None
 
     def screenshot_widgets(self):
         self.canvas_top = Canvas(self.master, width=300, height=100)
@@ -81,7 +86,7 @@ class Gui():
 
         self.canvas_top.grid()
 
-    def create_widgets(self):
+    def create_canvas(self):
         self.select = Button(
             self.master, text="select an image", command=self.select_image)
         self.select.grid()
@@ -98,7 +103,7 @@ class Gui():
 
         self.canvas.grid(sticky='nesw')
         my_scrollbary = Scrollbar(my_frame)
-        my_scrollbarx = Scrollbar(my_frame)
+        my_scrollbarx = Scrollbar(my_frame, orient="horizontal")
         my_scrollbary.grid(row=0, column=1, sticky='nse')
         my_scrollbarx.grid(row=1, column=0, sticky='new')
         my_frame.grid(sticky='nsew')
@@ -108,6 +113,7 @@ class Gui():
         self.canvas.configure(yscrollcommand=my_scrollbary.set)
         self.canvas.configure(xscrollcommand=my_scrollbarx.set)
 
+    def create_categories(self):
         cat_frame = Frame(self.master)
         cat_frame.columnconfigure(1, weight=1)
         self.categories = ['Not Exposed', 'Exposed',
@@ -120,6 +126,20 @@ class Gui():
         self.cat_inp.grid(row=0, column=1, sticky=E + W, padx=5, pady=5)
         cat_frame.grid(sticky='ew')
         self.cat_var.trace("w", self.outline_change)
+
+    def create_box_list(self):
+        box_list_frame = Frame(self.master)
+        box_list_frame.columnconfigure(0, weight=1)
+        self.box_list = {'': 0}
+        self.box_list_var = StringVar(box_list_frame)
+        self.box_list_inp = OptionMenu(
+            box_list_frame, self.box_list_var, *self.box_list.keys())
+        self.box_list_inp.grid(row=0, column=0, sticky=E + W, padx=5, pady=5)
+        box_list_btn = Button(
+            box_list_frame, text='Delete Box', command=self.delete_box_opt)
+        box_list_btn.grid(row=0, column=1, sticky=E + W, padx=5, pady=5)
+        box_list_frame.grid(sticky='ew')
+        # self.box_list_var.trace("w", self.delete_box_opt)
 
     def outline_change(self, *args):
         color_type = self.cat_var.get()
@@ -175,7 +195,10 @@ class Gui():
         cek = self.canvas.create_rectangle(
             coordinates, outline=self.outline, width=3)
         # print(self.canvas.coords(cek))
-        self.num_list.insert(0, cek)
+        self.num_list.insert(0, str(cek))
+        self.cat[self.cat_var.get()] += 1
+        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]}"] = cek
+        self.recreate_box_list()
 
     def select_image(self):
         self.canvas.delete(self.num)
@@ -188,23 +211,23 @@ class Gui():
 
         self.num = cek
 
-    def on_click(self):
-        coordinates = 50, 0, 100, 50
-        self.canvas.create_rectangle(
-            coordinates, outline=self.outline, width=3)
+    # def on_click(self):
+    #     coordinates = 50, 0, 100, 50
+    #     self.canvas.create_rectangle(
+    #         coordinates, outline=self.outline, width=3)
         # color change
         # self.num += 1
         # self.num_list.insert(0, self.num)
 
-    def delete_box(self):
+    # def delete_box(self):
         # self.canvas.delete("all")
-        if len(self.num_list) > 0:
-            if self.rect and self.num_list[0] < self.rect:
-                self.canvas.delete(self.rect)
-                self.rect = None
-            else:
-                self.canvas.delete(self.num_list[0])
-                self.num_list.pop(0)
+        # if len(self.num_list) > 0:
+        #     if self.rect and self.num_list[0] < self.rect:
+        #         self.canvas.delete(self.rect)
+        #         self.rect = None
+        #     else:
+        #         self.canvas.delete(self.num_list[0])
+        #         self.num_list.pop(0)
         # elif self.rect and len(self.num_list) == 0:
         #     self.canvas.delete(self.rect)
         #     self.rect = None
@@ -215,13 +238,23 @@ class Gui():
             self.num = 0
 
     def delete_box_opt(self):
-        self.categories.pop(0)
-        menu = self.cat_inp["menu"]
+        if self.box_list_var.get() == '' or self.box_list_var.get() == ' ':
+            return
+        get_index = self.num_list.index(
+            str(self.box_list[self.box_list_var.get()]))
+        self.canvas.delete(
+            self.num_list[get_index])
+        self.num_list.pop(get_index)
+        self.box_list.pop(self.box_list_var.get())
+        self.recreate_box_list()
+
+    def recreate_box_list(self):
+        menu = self.box_list_inp["menu"]
         menu.delete(0, "end")
-        for string in self.categories:
+        for string in self.box_list.keys():
             menu.add_command(label=string,
-                             command=lambda value=string: self.cat_var.set(value))
-        self.cat_var.set(self.categories[0])
+                             command=lambda value=string: self.box_list_var.set(value))
+        self.box_list_var.set(" ")
 
     def clip_screen(self):
         # self.master.withdraw()
@@ -265,4 +298,5 @@ if __name__ == "__main__":
     # root.resizable(0, 0)
     my_gui = Gui(root)
     root.call('wm', 'attributes', '.', '-topmost', '1')
+    # root.overrideredirect(True)
     root.mainloop()
