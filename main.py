@@ -462,6 +462,8 @@ class Gui():
 if __name__ == "__main__":
     if not (os.path.isdir("snips")):
         os.mkdir("snips")
+    if not (os.path.isdir("new_image")):
+        os.mkdir("new_image")
     root = Tk()
     # root = ttk.Window()
     root.title("SWC Screenshot App")
