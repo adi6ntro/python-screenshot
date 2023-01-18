@@ -2,9 +2,15 @@ from datetime import datetime
 from functools import partial
 from PIL import Image, ImageTk
 from sys import platform
-from tkinter import Tk, filedialog, Frame, Button, Canvas, Label, Entry, LabelFrame, Scrollbar, Text, StringVar, OptionMenu, E, W
+from tkinter import Tk, filedialog, Frame, Button, Canvas, Label, Entry, LabelFrame, Scrollbar, Text, StringVar, OptionMenu, E, W, Y, X, BOTH, LEFT, RIGHT, BOTTOM, VERTICAL, DISABLED
+from ttkbootstrap.constants import *
 import pyscreenshot as ImageGrab
 import os
+import ttkbootstrap as ttk
+import io
+import cv2
+
+os.environ["PATH"] += ":/usr/local/bin/gs"
 
 
 class Gui():
@@ -12,87 +18,92 @@ class Gui():
         self.master = master
         self.num_list = []
         self.box_delete = {}
-        self.cat = {"Not Exposed": 0, "Exposed": 0,
-                    "Periapical": 0, "Bone Loss": 0, "RCT": 0}
+        self.cat = {
+            "Not Exposed": {'type': 1, 'num': 0},
+            "Exposed": {'type': 2, 'num': 0},
+            "Periapical": {'type': 3, 'num': 0},
+            "Bone Loss": {'type': 4, 'num': 0},
+            "RCT": {'type': 5, 'num': 0}
+        }
+        self.cat_type = {
+            1: "Not Exposed",
+            2: "Exposed",
+            3: "Periapical",
+            4: "Bone Loss",
+            5: "RCT"
+        }
+        self.doctor_id = 10
         self.num = 0
         self.x = self.y = 0
         self.rect = None
         self.start_x = None
         self.start_y = None
         self.outline = "#%02x%02x%02x" % (255, 0, 0)
+        self.lines = []
+        self.init_frame()
         self.screenshot_widgets()
         self.create_canvas()
-        # Button(self.master, text="Add Box Shape", command=self.on_click).grid()
-        # Button(self.master, text="Box - Not Exposed",
-        #        command=lambda: self.outline_color('Not_Exposed_')).grid()
-        # Button(self.master, text="Box - Exposed",
-        #        command=lambda: self.outline_color('Exposed_')).grid()
-        # Button(self.master, text="Box - Periapical",
-        #        command=lambda: self.outline_color('Periapical_')).grid()
-        # Button(self.master, text="Box - Bone_Loss",
-        #        command=lambda: self.outline_color('Bone_Loss')).grid()
-        # Button(self.master, text="Box - RCT",
-        #        command=lambda: self.outline_color('RCT')).grid()
-        Button(self.master, text="Delete Image",
-               command=self.delete_image).grid()
+        self.create_btn()
         self.create_categories()
         self.create_box_list()
-        # Button(self.master, text="Delete Box",
-        #        command=self.delete_box).grid()
-        # Button(self.master, text="Get Box",
-        #        command=self.get_box).grid()
 
-    # def get_box(self):
-    #     for r in self.num_list:
-    #         Button(self.master, text="Box " + str(r),
-    #                command=self.delete_box).grid()
-
-    # def outline_color(self, color_type):
-    #     print(color_type)
-    #     if color_type == "Not_Exposed_":
-    #         color = (255, 0, 0)
-    #     elif color_type == "Exposed_":
-    #         color = (0, 0, 255)
-    #     elif color_type == "Periapical_":
-    #         color = (0, 255, 0)
-    #     elif color_type == "Bone_Loss":
-    #         color = (0, 153, 255)
-    #     elif color_type == "RCT":
-    #         color = (255, 82, 141)
-    #     else:
-    #         color = (255, 0, 0)
-    #     self.outline = "#%02x%02x%02x" % color
-    #     self.canvas.delete(self.rect)
-    #     self.rect = None
+    def init_frame(self):
+        self.frame = Frame(self.master)
+        self.frame.pack(fill=BOTH, expand=1)
+        self.master_canvas = Canvas(self.frame, width=500, height=700)
+        self.master_canvas.pack(side=LEFT, fill=BOTH, expand=1)
+        master_scrollbar = Scrollbar(
+            self.frame, orient=VERTICAL, command=self.master_canvas.yview)
+        master_scrollbar.pack(side=RIGHT, fill=Y)
+        self.master_canvas.configure(yscrollcommand=master_scrollbar.set)
+        self.master_canvas.bind('<Configure>', lambda e: self.master_canvas.configure(
+            scrollregion=self.master_canvas.bbox("all")))
 
     def screenshot_widgets(self):
-        self.canvas_top = Canvas(self.master, width=300, height=100)
+        ss_frame = Frame(self.master_canvas)
+        self.master_canvas.create_window(
+            (250, 0), window=ss_frame)
+        self.canvas_top = Frame(ss_frame)
         image1 = Image.open("swc.ico")
         my_img1 = ImageTk.PhotoImage(image1.resize((30, 30)))
 
-        self.logo = Label(self.master, image=my_img1)
-        self.canvas_top.create_window(150, 20, window=self.logo)
+        self.logo = Label(ss_frame, image=my_img1)
+        self.logo.grid(sticky=E+W)
+        self.logo.img_ref = my_img1
 
-        self.label = Entry(self.master, font=('helvetica', 10),
-                           bd=0, width=30, justify='center')
-        self.canvas_top.create_window(150, 80, window=self.label)
-
-        fs_button = Button(text="Take Full Screen",
+        fs_button = Button(ss_frame, text="Take Full Screen",
                            command=partial(self.hide_window),
-                                bg="#8e936d", fg="black",
-                                padx=10,
-                                font=("Sans Serif", 9))
-        self.canvas_top.create_window(150, 50, window=fs_button)
+                           bg="#8e936d", fg="black", padx=10,
+                           #    bootstyle=(SUCCESS, OUTLINE)
+                           font=("Sans Serif", 9)
+                           )
+        fs_button.grid()
+
+        self.label = Entry(ss_frame, font=('helvetica', 10),
+                           bd=0, width=70, justify='center')
+        self.label.grid(sticky=E+W)
 
         self.canvas_top.grid()
 
-    def create_canvas(self):
+    def create_btn(self):
+        self.ebox_frame = Frame(self.master_canvas)
+        self.master_canvas.create_window(
+            (250, 700), window=self.ebox_frame)
+        btn = Frame(self.ebox_frame)
         self.select = Button(
-            self.master, text="select an image", command=self.select_image)
-        self.select.grid()
+            btn, text="Open report", command=self.select_image)  # , bootstyle="info"
+        self.select.grid(row=0, column=0)
+        self.del_img = Button(btn, text="Reset report",
+                              command=self.delete_image)  # , bootstyle="danger"
+        self.del_img.grid(row=0, column=1)
+        btn.grid()
 
-        my_frame = LabelFrame(self.master, text='Image')
-        self.canvas = Canvas(my_frame, width=400,
+    def create_canvas(self):
+        self.canvas_frame = Frame(self.master_canvas)
+        self.master_canvas.create_window(
+            (250, 300), window=self.canvas_frame)
+        self.my_frame = LabelFrame(self.canvas_frame, text='Image')
+        self.canvas = Canvas(self.my_frame, width=400,
                              height=400, bg="grey", cursor="cross")
 
         self.canvas.bind("<ButtonPress-1>", self.on_button_press)
@@ -101,12 +112,12 @@ class Gui():
         self.canvas.bind("<Configure>", lambda e: self.canvas.config(
             scrollregion=self.canvas.bbox("all")))
 
-        self.canvas.grid(sticky='nesw')
-        my_scrollbary = Scrollbar(my_frame)
-        my_scrollbarx = Scrollbar(my_frame, orient="horizontal")
-        my_scrollbary.grid(row=0, column=1, sticky='nse')
-        my_scrollbarx.grid(row=1, column=0, sticky='new')
-        my_frame.grid(sticky='nsew')
+        my_scrollbary = Scrollbar(self.my_frame)
+        my_scrollbarx = Scrollbar(self.my_frame, orient="horizontal")
+        my_scrollbary.pack(side=RIGHT, fill=Y)
+        my_scrollbarx.pack(side=BOTTOM, fill=X)
+        self.canvas.pack(fill=BOTH, expand=True)
+        self.my_frame.pack(fill=BOTH, expand=True, padx=10, pady=10)
 
         my_scrollbary.configure(command=self.canvas.yview)
         my_scrollbarx.configure(command=self.canvas.xview)
@@ -114,7 +125,7 @@ class Gui():
         self.canvas.configure(xscrollcommand=my_scrollbarx.set)
 
     def create_categories(self):
-        cat_frame = Frame(self.master)
+        cat_frame = Frame(self.ebox_frame)
         cat_frame.columnconfigure(1, weight=1)
         self.categories = ['Not Exposed', 'Exposed',
                            'Periapical', 'Bone Loss', 'RCT']
@@ -122,27 +133,86 @@ class Gui():
         self.cat_var.set(self.categories[0])
         cat_label = Label(cat_frame, text='Category: ')
         cat_label.grid(sticky=E + W, padx=5, pady=5)
-        self.cat_inp = OptionMenu(cat_frame, self.cat_var, *self.categories)
+        self.cat_inp = OptionMenu(
+            cat_frame, self.cat_var, *self.categories)
         self.cat_inp.grid(row=0, column=1, sticky=E + W, padx=5, pady=5)
         cat_frame.grid(sticky='ew')
         self.cat_var.trace("w", self.outline_change)
 
     def create_box_list(self):
-        box_list_frame = Frame(self.master)
-        box_list_frame.columnconfigure(0, weight=1)
-        self.box_list = {'': 0}
+        box_list_frame = Frame(self.ebox_frame)
+        box_list_frame.columnconfigure(1, weight=1)
+        self.box_list = {
+            ' ': {
+                'canvas_id': 0,
+                'box_type': 0,
+                'box_num': 0,
+                'coordinate': [0, 0, 0, 0],
+                'confidence': 0,
+                'distance': 0,
+                'overlap': 0,
+            }
+        }
         self.box_list_var = StringVar(box_list_frame)
+        box_list_label = Label(box_list_frame, text='Box List: ')
+        box_list_label.grid(row=0, column=0, sticky=W, padx=5, pady=5)
         self.box_list_inp = OptionMenu(
             box_list_frame, self.box_list_var, *self.box_list.keys())
-        self.box_list_inp.grid(row=0, column=0, sticky=E + W, padx=5, pady=5)
-        box_list_btn = Button(
-            box_list_frame, text='Delete Box', command=self.delete_box_opt)
-        box_list_btn.grid(row=0, column=1, sticky=E + W, padx=5, pady=5)
+        self.box_list_inp.grid(row=0, column=1, sticky=E + W, padx=5, pady=5)
+        self.box_list_var.trace("w", self.box_list_change)
+
+        coordinate_label = Label(box_list_frame, text='Coordinate: ')
+        coordinate_label.grid(row=1, column=0, sticky=W, padx=5, pady=5)
+        self.coordinate_str = StringVar(box_list_frame)
+        self.coordinate_str.set('0,0,0,0')
+        self.coordinate_ent = Entry(box_list_frame,
+                                    textvariable=self.coordinate_str, state=DISABLED)
+        self.coordinate_ent.grid(row=1, column=1, sticky=E + W, padx=5, pady=5)
+
+        confidence_label = Label(box_list_frame, text='Confidence: ')
+        confidence_label.grid(row=2, column=0, sticky=W, padx=5, pady=5)
+        self.confidence_str = StringVar(box_list_frame)
+        self.confidence_str.set('')
+        self.confidence_ent = Entry(box_list_frame,
+                                    textvariable=self.confidence_str)
+        self.confidence_ent.grid(row=2, column=1, sticky=E + W, padx=5, pady=5)
+
+        distance_label = Label(box_list_frame, text='Distance: ')
+        distance_label.grid(row=3, column=0, sticky=W, padx=5, pady=5)
+        self.distance_str = StringVar(box_list_frame)
+        self.distance_str.set('')
+        self.distance_ent = Entry(box_list_frame,
+                                  textvariable=self.distance_str)
+        self.distance_ent.grid(row=3, column=1, sticky=E + W, padx=5, pady=5)
+
+        overlap_label = Label(box_list_frame, text='overlap: ')
+        overlap_label.grid(row=4, column=0, sticky=W, padx=5, pady=5)
+        self.overlap_str = StringVar(box_list_frame)
+        self.overlap_str.set('')
+        self.overlap_ent = Entry(box_list_frame,
+                                 textvariable=self.overlap_str)
+        self.overlap_ent.grid(row=4, column=1, sticky=E + W, padx=5, pady=5)
+
+        box_list_btn_update = Button(
+            box_list_frame, text='Update Box', command=self.update_box_opt)  # , bootstyle="danger"
+        box_list_btn_update.grid(row=5, column=0, sticky=W, padx=5, pady=5)
+        box_list_btn_delete = Button(
+            box_list_frame, text='Delete Box', command=self.delete_box_opt)  # , bootstyle="danger"
+        box_list_btn_delete.grid(row=5, column=1, sticky=W, padx=5, pady=5)
+
+        create_report_btn = Button(
+            box_list_frame, text='Create New Report', command=self.generate_report)  # , bootstyle="danger"
+        create_report_btn.grid(
+            row=6, column=0, columnspan=2, sticky=W, padx=5, pady=5)
         box_list_frame.grid(sticky='ew')
-        # self.box_list_var.trace("w", self.delete_box_opt)
 
     def outline_change(self, *args):
         color_type = self.cat_var.get()
+        self.color_type(color_type)
+        self.canvas.delete(self.rect)
+        self.rect = None
+
+    def color_type(self, color_type):
         if color_type == "Not Exposed":
             color = (255, 0, 0)
         elif color_type == "Exposed":
@@ -157,8 +227,17 @@ class Gui():
             color = (255, 0, 0)
         print(color_type)
         self.outline = "#%02x%02x%02x" % color
-        self.canvas.delete(self.rect)
-        self.rect = None
+
+    def box_list_change(self, *args):
+        # if self.box_list_var.get() == ' ':
+        #     self.box_list_var.set(" ")
+        self.coordinate_str.set(
+            self.box_list[self.box_list_var.get()]['coordinate'])
+        self.confidence_str.set(
+            self.box_list[self.box_list_var.get()]['confidence'])
+        self.distance_str.set(
+            self.box_list[self.box_list_var.get()]['distance'])
+        self.overlap_str.set(self.box_list[self.box_list_var.get()]['overlap'])
 
     def on_button_press(self, event):
         # save mouse drag start position
@@ -196,57 +275,125 @@ class Gui():
             coordinates, outline=self.outline, width=3)
         # print(self.canvas.coords(cek))
         self.num_list.insert(0, str(cek))
-        self.cat[self.cat_var.get()] += 1
-        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]}"] = cek
+        self.cat[self.cat_var.get()]['num'] += 1
+
+        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"] = {
+        }
+        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['canvas_id'] = cek
+        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['box_type'] = self.cat[self.cat_var.get()]['type']
+        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['box_num'] = self.cat[self.cat_var.get(
+        )]['num'] - 1
+        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['coordinate'] = list(
+            coordinates)
+        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['confidence'] = 0
+        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['distance'] = 0
+        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['overlap'] = 0
+
         self.recreate_box_list()
 
     def select_image(self):
-        self.canvas.delete(self.num)
-        file_path = filedialog.askopenfilename()
-        des = Image.open(file_path)
-        bg_image = ImageTk.PhotoImage(des)
+        self.canvas.delete("all")
+        # file_path = filedialog.askopenfilename()
+        file_path = "919.jpg"
+        self.des = Image.open(file_path)
+        bg_image = ImageTk.PhotoImage(self.des)
+        # bg_image = bg_image._PhotoImage__photo.subsample(2)
         self.canvas.bg_image = bg_image
+        img = cv2.imread(file_path)
+        dh, dw, _ = img.shape
+        self.img_width = bg_image.width()
+        self.img_height = bg_image.height()
+        # dw = bg_image.width()
+        # dh = bg_image.height()
         cek = self.canvas.create_image(
-            0, 0, anchor="nw", image=self.canvas.bg_image)
+            0, 0, anchor="nw", image=bg_image)
+        # self.canvas.place(x=0, y=0, height=bg_image.height(),
+        #                   width=bg_image.width())
 
         self.num = cek
 
-    # def on_click(self):
-    #     coordinates = 50, 0, 100, 50
-    #     self.canvas.create_rectangle(
-    #         coordinates, outline=self.outline, width=3)
-        # color change
-        # self.num += 1
-        # self.num_list.insert(0, self.num)
+        with open("919.txt") as file:
+            self.lines = [line.rstrip() for line in file]
 
-    # def delete_box(self):
-        # self.canvas.delete("all")
-        # if len(self.num_list) > 0:
-        #     if self.rect and self.num_list[0] < self.rect:
-        #         self.canvas.delete(self.rect)
-        #         self.rect = None
-        #     else:
-        #         self.canvas.delete(self.num_list[0])
-        #         self.num_list.pop(0)
-        # elif self.rect and len(self.num_list) == 0:
-        #     self.canvas.delete(self.rect)
-        #     self.rect = None
+        last_val = self.box_list[' ']
+        self.box_list.clear()
+        self.num_list.clear()
+        self.box_list[' '] = last_val
+        for row in self.lines:
+            x = row.split()
+            # Split string to float
+            tipe, _, x, y, w, h = map(float, row.split(' '))
+
+            # Taken from https://github.com/pjreddie/darknet/blob/810d7f797bdb2f021dbe65d2524c2ff6b8ab5c8b/src/image.c#L283-L291
+            # via https://stackoverflow.com/questions/44544471/how-to-get-the-coordinates-of-the-bounding-box-in-yolo-object-detection#comment102178409_44592380
+            l = int((x - w / 2) * dw)
+            r = int((x + w / 2) * dw)
+            t = int((y - h / 2) * dh)
+            b = int((y + h / 2) * dh)
+
+            if l < 0:
+                l = 0
+            if r > dw - 1:
+                r = dw - 1
+            if t < 0:
+                t = 0
+            if b > dh - 1:
+                b = dh - 1
+            coordinates = (l, t, r, b)
+            self.color_type(self.cat_type[int(tipe)])
+            cek = self.canvas.create_rectangle(
+                coordinates, outline=self.outline, width=3)
+            # print(self.canvas.coords(cek))
+            self.num_list.insert(0, str(cek))
+            self.cat[self.cat_type[int(tipe)]]['num'] += 1
+            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"] = {
+            }
+            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"]['canvas_id'] = cek
+            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"]['box_type'] = int(
+                tipe)
+            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"][
+                'box_num'] = self.cat[self.cat_type[int(tipe)]]['num'] - 1
+            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"]['coordinate'] = list(
+                coordinates)
+            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"]['confidence'] = 0
+            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"]['distance'] = 0
+            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"]['overlap'] = 0
+
+        self.recreate_box_list()
 
     def delete_image(self):
-        if self.num > 0:
-            self.canvas.delete(self.num)
-            self.num = 0
+        self.canvas.delete("all")
+        self.num = 0
+        last_val = self.box_list[' ']
+        self.box_list.clear()
+        self.num_list.clear()
+        self.box_list[' '] = last_val
+        self.recreate_box_list()
 
     def delete_box_opt(self):
         if self.box_list_var.get() == '' or self.box_list_var.get() == ' ':
             return
         get_index = self.num_list.index(
-            str(self.box_list[self.box_list_var.get()]))
+            str(self.box_list[self.box_list_var.get()]['canvas_id']))
         self.canvas.delete(
             self.num_list[get_index])
         self.num_list.pop(get_index)
         self.box_list.pop(self.box_list_var.get())
         self.recreate_box_list()
+
+    def update_box_opt(self):
+        if self.box_list_var.get() == '' or self.box_list_var.get() == ' ':
+            return
+        try:
+            confidence = float(self.confidence_str.get())
+            distance = float(self.distance_str.get())
+            overlap = float(self.overlap_str.get())
+            self.box_list[self.box_list_var.get()]['confidence'] = confidence
+            self.box_list[self.box_list_var.get()]['distance'] = distance
+            self.box_list[self.box_list_var.get()]['overlap'] = overlap
+            self.recreate_box_list()
+        except ValueError:
+            print('Wrong Value')
 
     def recreate_box_list(self):
         menu = self.box_list_inp["menu"]
@@ -256,13 +403,36 @@ class Gui():
                              command=lambda value=string: self.box_list_var.set(value))
         self.box_list_var.set(" ")
 
+    def generate_report(self):
+        image_name = "new_image/" + \
+            str(datetime.now()).replace(" ", "").replace(":", "") + ".jpg"
+        self.canvas.config(height=self.img_height,
+                           width=self.img_width)
+        self.canvas.update()
+        ps = self.canvas.postscript(colormode='color')
+        psimage = Image.open(io.BytesIO(ps.encode('utf-8')))
+        psimage.save(image_name)
+        self.canvas.config(height=400, width=400)
+        self.my_frame.config(height=400, width=400)
+        self.canvas_frame.config(height=400, width=400)
+        arr = {
+            'doctor_id': 10,
+            'box_data': []
+        }
+        for row in self.box_list:
+            if row == ' ':
+                continue
+            arr['box_data'].append(self.box_list[row])
+        print(arr)
+        self.delete_image()
+
     def clip_screen(self):
         # self.master.withdraw()
         image_name = "snips/" + \
             str(datetime.now()).replace(" ", "").replace(":", "") + ".png"
         try:
             image = ImageGrab.grab(childprocess=False)
-            image.save(image_name)
+            image.save(image_name, format='PNG', subsampling=0, quality=100)
             img = Image.open(image_name)
             resized = img.resize((30, 30), Image.Resampling.LANCZOS)
             photo = ImageTk.PhotoImage(resized)
@@ -293,6 +463,7 @@ if __name__ == "__main__":
     if not (os.path.isdir("snips")):
         os.mkdir("snips")
     root = Tk()
+    # root = ttk.Window()
     root.title("SWC Screenshot App")
     root.iconbitmap("swc.ico")
     # root.resizable(0, 0)
@@ -300,3 +471,9 @@ if __name__ == "__main__":
     root.call('wm', 'attributes', '.', '-topmost', '1')
     # root.overrideredirect(True)
     root.mainloop()
+
+
+# {
+# doctor_id: 10,
+# box_data:[{ type box (numeric-readonly), nomor box (numeric-readonly), koordinat (readonly), confidence (numeric), distance (numeric), overlap (numeric)}],
+# }
