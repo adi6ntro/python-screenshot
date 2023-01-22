@@ -42,42 +42,8 @@ class Login(Frame):
             save_var.name = response['data']['name']
             save_var.email = response['data']['email']
             save_var.token = response['data']['token']
-            name = response['data']['name']
-            email = response['data']['email']
-            token = response['data']['token']
             self.controller.show_frame("Gui")
-
-    # def show_token(self):
-    #     return self.token
-
-
-token = ''
-name = ''
-email = ''
-
-
-# frame = Frame()
-
-# Creating widgets
-# login_label = Label(
-#     frame, text="Login", font=("Arial", 30))
-# username_label = Label(
-#     frame, text="Username", font=("Arial", 16))
-# username_entry = Entry(frame, font=("Arial", 16))
-# password_entry = Entry(frame, show="*", font=("Arial", 16))
-# password_label = Label(
-#     frame, text="Password", font=("Arial", 16))
-# login_button = Button(
-#     frame, text="Login", font=("Arial", 16), command=login)
-
-# Placing widgets on the screen
-# login_label.grid(row=0, column=0, columnspan=2, sticky="news", pady=40)
-# username_label.grid(row=1, column=0)
-# username_entry.grid(row=1, column=1, pady=10)
-# password_label.grid(row=2, column=0)
-# password_entry.grid(row=2, column=1, pady=10)
-# login_button.grid(row=3, column=0, columnspan=2, pady=10)
-
-# frame.pack()
-
-# window.mainloop()
+            # print(
+            #     f"{self.controller.get_screenwidth()}x{self.controller.get_screenheight()}")
+            self.controller.geometry(
+                f"{save_var.screen_width}x{save_var.screen_width}+0+0")

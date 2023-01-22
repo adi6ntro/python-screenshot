@@ -2,7 +2,7 @@ from datetime import datetime
 from functools import partial
 from PIL import Image, ImageTk
 from sys import platform
-from tkinter import Tk, filedialog, Frame, Button, Canvas, Label, Entry, LabelFrame, Scrollbar, Text, StringVar, OptionMenu, E, W, Y, X, BOTH, LEFT, RIGHT, BOTTOM, VERTICAL, DISABLED
+from tkinter import Tk, filedialog, Frame, Button, Canvas, Label, Entry, LabelFrame, Scrollbar, Text, StringVar, OptionMenu, messagebox, E, W, Y, X, BOTH, LEFT, RIGHT, BOTTOM, VERTICAL, DISABLED
 from ttkbootstrap.constants import *
 import pyscreenshot as ImageGrab
 import os
@@ -10,9 +10,7 @@ import ttkbootstrap as ttk
 import io
 import cv2
 import utils.ApiClass as ac
-import login
 import save_var
-
 
 os.environ["PATH"] += ":/usr/local/bin/gs"
 
@@ -25,8 +23,6 @@ class Gui(Frame):
     #                         command=lambda: controller.show_frame("PageOne"))
     #     button2 = Button(self, text="Go to Page Two",
     #                         command=lambda: controller.show_frame("PageTwo"))
-    # def __init__(self, master):
-        # self.master = self
         self.num_list = []
         self.box_delete = {}
         self.cat = {
@@ -34,14 +30,16 @@ class Gui(Frame):
             "Exposed": {'type': 2, 'num': 0},
             "Periapical": {'type': 3, 'num': 0},
             "Bone Loss": {'type': 4, 'num': 0},
-            "RCT": {'type': 5, 'num': 0}
+            "RCT": {'type': 5, 'num': 0},
+            "Other": {'type': 6, 'num': 0}
         }
         self.cat_type = {
             1: "Not Exposed",
             2: "Exposed",
             3: "Periapical",
             4: "Bone Loss",
-            5: "RCT"
+            5: "RCT",
+            6: "Other"
         }
         self.doctor_id = 10
         self.num = 0
@@ -61,7 +59,8 @@ class Gui(Frame):
     def init_frame(self):
         self.frame = Frame(self)
         self.frame.pack(fill=BOTH, expand=1)
-        self.master_canvas = Canvas(self.frame, width=500, height=700)
+        self.master_canvas = Canvas(
+            self.frame, width=save_var.screen_width, height=save_var.screen_height)
         self.master_canvas.pack(side=LEFT, fill=BOTH, expand=1)
         master_scrollbar = Scrollbar(
             self.frame, orient=VERTICAL, command=self.master_canvas.yview)
@@ -73,7 +72,7 @@ class Gui(Frame):
     def screenshot_widgets(self):
         ss_frame = Frame(self.master_canvas, padx=20, pady=20)
         self.master_canvas.create_window(
-            (250, 0), window=ss_frame)
+            (200, 0), window=ss_frame)
         self.canvas_top = Frame(ss_frame)
         image1 = Image.open("swc.ico")
         my_img1 = ImageTk.PhotoImage(image1.resize((30, 30)))
@@ -91,7 +90,7 @@ class Gui(Frame):
         fs_button.grid()
 
         self.label = Entry(ss_frame, font=('helvetica', 10),
-                           bd=0, width=70, justify='center')
+                           bd=0, width=50, justify='center')
         self.label.grid(sticky=E+W)
 
         self.canvas_top.grid()
@@ -99,7 +98,7 @@ class Gui(Frame):
     def create_btn(self):
         self.ebox_frame = Frame(self.master_canvas, padx=20, pady=20)
         self.master_canvas.create_window(
-            (250, 710), window=self.ebox_frame)
+            (200, 230), window=self.ebox_frame)
         btn = Frame(self.ebox_frame)
         self.select = Button(
             btn, text="Open report", command=self.select_image)  # , bootstyle="info"
@@ -111,11 +110,17 @@ class Gui(Frame):
 
     def create_canvas(self):
         self.canvas_frame = Frame(self.master_canvas)
+        # width = round(save_var.screen_width * 20 / 100)
+        # height = round(save_var.screen_height * 30 / 100)
         self.master_canvas.create_window(
-            (250, 300), window=self.canvas_frame)
-        self.my_frame = LabelFrame(self.canvas_frame, text='Image')
-        self.canvas = Canvas(self.my_frame, width=400,
-                             height=400, bg="grey", cursor="cross")
+            # (width, height), window=self.canvas_frame)
+            (900, 330), window=self.canvas_frame)
+        # (500, 100), window=self.canvas_frame)
+        self.my_frame = LabelFrame(self.canvas_frame, text='Report Image')
+        # print(width)
+        # print(height)
+        self.canvas = Canvas(self.my_frame, width=960,
+                             height=720, bg="grey", cursor="cross")
 
         self.canvas.bind("<ButtonPress-1>", self.on_button_press)
         self.canvas.bind("<B1-Motion>", self.on_move_press)
@@ -284,7 +289,7 @@ class Gui(Frame):
         # print(coordinates)
         cek = self.canvas.create_rectangle(
             coordinates, outline=self.outline, width=3)
-        # print(self.canvas.coords(cek))
+
         self.num_list.insert(0, str(cek))
         self.cat[self.cat_var.get()]['num'] += 1
 
@@ -304,8 +309,15 @@ class Gui(Frame):
 
     def select_image(self):
         self.canvas.delete("all")
-        # file_path = filedialog.askopenfilename()
-        file_path = "919.jpg"
+        file_path = filedialog.askopenfilename()
+        # file_path = "919.jpg"
+        apiObj = ac.ApiClass()
+        response = apiObj.aitools(
+            file_path, save_var.email, save_var.token, "1")
+        if response['code'] != '00':
+            messagebox.showerror(title="Error", message=response['message'])
+            return
+
         self.des = Image.open(file_path)
         bg_image = ImageTk.PhotoImage(self.des)
         # bg_image = bg_image._PhotoImage__photo.subsample(2)
@@ -323,17 +335,79 @@ class Gui(Frame):
 
         self.num = cek
 
-        with open("919.txt") as file:
-            self.lines = [line.rstrip() for line in file]
+        # with open("919.txt") as file:
+        #     self.lines = [line.rstrip() for line in file]
 
         last_val = self.box_list[' ']
         self.box_list.clear()
         self.num_list.clear()
         self.box_list[' '] = last_val
-        for row in self.lines:
-            x = row.split()
+
+        coordinate_non_exposed = "" if response['data']['non_exposed_pulp_box_position'] == "" or response['data'][
+            'non_exposed_pulp_box_position'] == "-" else response['data']['non_exposed_pulp_box_position'].split('&')
+        confidence_non_exposed = "" if response['data']['non_exposed_pulp_confidence'] == "" or response['data'][
+            'non_exposed_pulp_confidence'] == "-" else response['data']['non_exposed_pulp_confidence'].split('&')
+        distance_non_exposed = "" if response['data']['non_exposed_pulp_distance'] == "" or response['data'][
+            'non_exposed_pulp_distance'] == "-" else response['data']['non_exposed_pulp_distance'].split('&')
+        overlap_non_exposed = "" if response['data']['non_exposed_pulp_overlap'] == "" or response['data'][
+            'non_exposed_pulp_overlap'] == "-" else response['data']['non_exposed_pulp_overlap'].split('&')
+        self.get_box_data(1, coordinate_non_exposed, (dh, dw),
+                          confidence_non_exposed, distance_non_exposed, overlap_non_exposed)
+
+        coordinate_exposed = "" if response['data']['exposed_pulp_box_position'] == "" or response['data'][
+            'exposed_pulp_box_position'] == "-" else response['data']['exposed_pulp_box_position'].split('&')
+        confidence_exposed = "" if response['data']['exposed_pulp_confidence'] == "" or response['data'][
+            'exposed_pulp_confidence'] == "-" else response['data']['exposed_pulp_confidence'].split('&')
+        distance_exposed = "" if response['data']['exposed_pulp_distance'] == "" or response['data'][
+            'exposed_pulp_distance'] == "-" else response['data']['exposed_pulp_distance'].split('&')
+        overlap_exposed = "" if response['data']['exposed_pulp_overlap'] == "" or response['data'][
+            'exposed_pulp_overlap'] == "-" else response['data']['exposed_pulp_overlap'].split('&')
+        self.get_box_data(2, coordinate_exposed, (dh, dw),
+                          confidence_exposed, distance_exposed, overlap_exposed)
+
+        coordinate_periapical = "" if response['data']['periapical_lesion_box_position'] == "" or response['data'][
+            'periapical_lesion_box_position'] == "-" else response['data']['periapical_lesion_box_position'].split('&')
+        confidence_periapical = "" if response['data']['periapical_lesion_confidence'] == "" or response['data'][
+            'periapical_lesion_confidence'] == "-" else response['data']['periapical_lesion_confidence'].split('&')
+        distance_periapical = "" if response['data']['periapical_lesion_distance'] == "" or response['data'][
+            'periapical_lesion_distance'] == "-" else response['data']['periapical_lesion_distance'].split('&')
+        overlap_periapical = "" if response['data']['periapical_lesion_overlap'] == "" or response['data'][
+            'periapical_lesion_overlap'] == "-" else response['data']['periapical_lesion_overlap'].split('&')
+        self.get_box_data(3, coordinate_periapical, (dh, dw),
+                          confidence_periapical, distance_periapical, overlap_periapical)
+
+        coordinate_bone_loss = "" if response['data']['bone_loss_box_position'] == "" or response['data'][
+            'bone_loss_box_position'] == "-" else response['data']['bone_loss_box_position'].split('&')
+        confidence_bone_loss = "" if response['data']['bone_loss_confidence'] == "" or response['data'][
+            'bone_loss_confidence'] == "-" else response['data']['bone_loss_confidence'].split('&')
+        distance_bone_loss = "" if response['data']['bone_loss_distance'] == "" or response['data'][
+            'bone_loss_distance'] == "-" else response['data']['bone_loss_distance'].split('&')
+        overlap_bone_loss = "" if response['data']['bone_loss_overlap'] == "" or response['data'][
+            'bone_loss_overlap'] == "-" else response['data']['bone_loss_overlap'].split('&')
+        self.get_box_data(4, coordinate_bone_loss, (dh, dw),
+                          confidence_bone_loss, distance_bone_loss, overlap_bone_loss)
+
+        coordinate_root_canal = "" if response['data']['root_canal_box_position'] == "" or response['data'][
+            'root_canal_box_position'] == "-" else response['data']['root_canal_box_position'].split('&')
+        confidence_root_canal = "" if response['data']['root_canal_confidence'] == "" or response['data'][
+            'root_canal_confidence'] == "-" else response['data']['root_canal_confidence'].split('&')
+        distance_root_canal = "" if response['data']['root_canal_distance'] == "" or response['data'][
+            'root_canal_distance'] == "-" else response['data']['root_canal_distance'].split('&')
+        overlap_root_canal = "" if response['data']['root_canal_overlap'] == "" or response['data'][
+            'root_canal_overlap'] == "-" else response['data']['root_canal_overlap'].split('&')
+        self.get_box_data(5, coordinate_root_canal, (dh, dw),
+                          confidence_root_canal, distance_root_canal, overlap_root_canal)
+
+        self.recreate_box_list()
+
+    def get_box_data(self, tipe, coordinate, d, confidence, distance, overlap):
+        dh, dw = d
+        if coordinate == "":
+            return
+
+        for idx, row in enumerate(coordinate):
             # Split string to float
-            tipe, _, x, y, w, h = map(float, row.split(' '))
+            x, y, w, h = map(float, row.split(' '))
 
             # Taken from https://github.com/pjreddie/darknet/blob/810d7f797bdb2f021dbe65d2524c2ff6b8ab5c8b/src/image.c#L283-L291
             # via https://stackoverflow.com/questions/44544471/how-to-get-the-coordinates-of-the-bounding-box-in-yolo-object-detection#comment102178409_44592380
@@ -354,7 +428,7 @@ class Gui(Frame):
             self.color_type(self.cat_type[int(tipe)])
             cek = self.canvas.create_rectangle(
                 coordinates, outline=self.outline, width=3)
-            # print(self.canvas.coords(cek))
+
             self.num_list.insert(0, str(cek))
             self.cat[self.cat_type[int(tipe)]]['num'] += 1
             self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"] = {
@@ -366,22 +440,31 @@ class Gui(Frame):
                 'box_num'] = self.cat[self.cat_type[int(tipe)]]['num'] - 1
             self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"]['coordinate'] = list(
                 coordinates)
-            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"]['confidence'] = 0
-            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"]['distance'] = 0
-            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"]['overlap'] = 0
+            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"]['confidence'] = confidence[idx]
+            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"][
+                'distance'] = distance[idx] if tipe != 5 and distance != "" else ""
+            self.box_list[f"{self.cat_type[int(tipe)]} {self.cat[self.cat_type[int(tipe)]]['num']}"][
+                'overlap'] = overlap[idx] if tipe != 5 and overlap != "" else ""
 
-        self.recreate_box_list()
+        if tipe == 5:
+            if distance != "":
+                for idx, row in enumerate(distance):
+                    x = row.split('-')
+                    self.box_list[f"{self.cat_type[int(tipe)]} {x[0]}"]['distance'] = x[1]
+
+            if overlap != "":
+                for idx, row in enumerate(overlap):
+                    x = row.split('-')
+                    self.box_list[f"{self.cat_type[int(tipe)]} {x[0]}"]['overlap'] = 'Yes'
 
     def delete_image(self):
-        print(save_var.token)
-        print(login.token)
-        # self.canvas.delete("all")
-        # self.num = 0
-        # last_val = self.box_list[' ']
-        # self.box_list.clear()
-        # self.num_list.clear()
-        # self.box_list[' '] = last_val
-        # self.recreate_box_list()
+        self.canvas.delete("all")
+        self.num = 0
+        last_val = self.box_list[' ']
+        self.box_list.clear()
+        self.num_list.clear()
+        self.box_list[' '] = last_val
+        self.recreate_box_list()
 
     def delete_box_opt(self):
         if self.box_list_var.get() == '' or self.box_list_var.get() == ' ':
@@ -397,16 +480,23 @@ class Gui(Frame):
     def update_box_opt(self):
         if self.box_list_var.get() == '' or self.box_list_var.get() == ' ':
             return
-        try:
-            confidence = float(self.confidence_str.get())
-            distance = float(self.distance_str.get())
-            overlap = float(self.overlap_str.get())
-            self.box_list[self.box_list_var.get()]['confidence'] = confidence
-            self.box_list[self.box_list_var.get()]['distance'] = distance
-            self.box_list[self.box_list_var.get()]['overlap'] = overlap
-            self.recreate_box_list()
-        except ValueError:
-            print('Wrong Value')
+        confidence = float(self.confidence_str.get())
+        distance = float(self.distance_str.get())
+        overlap = float(self.overlap_str.get())
+        self.box_list[self.box_list_var.get()]['confidence'] = confidence
+        self.box_list[self.box_list_var.get()]['distance'] = distance
+        self.box_list[self.box_list_var.get()]['overlap'] = overlap
+        self.recreate_box_list()
+        # try:
+        #     confidence = float(self.confidence_str.get())
+        #     distance = float(self.distance_str.get())
+        #     overlap = float(self.overlap_str.get())
+        #     self.box_list[self.box_list_var.get()]['confidence'] = confidence
+        #     self.box_list[self.box_list_var.get()]['distance'] = distance
+        #     self.box_list[self.box_list_var.get()]['overlap'] = overlap
+        #     self.recreate_box_list()
+        # except ValueError:
+        #     print('Wrong Value')
 
     def recreate_box_list(self):
         menu = self.box_list_inp["menu"]
@@ -425,19 +515,24 @@ class Gui(Frame):
         ps = self.canvas.postscript(colormode='color')
         psimage = Image.open(io.BytesIO(ps.encode('utf-8')))
         psimage.save(image_name)
-        self.canvas.config(height=400, width=400)
-        self.my_frame.config(height=400, width=400)
-        self.canvas_frame.config(height=400, width=400)
+        self.canvas.config(width=960, height=720)
+        self.my_frame.config(width=960, height=720)
+        self.canvas_frame.config(width=960, height=720)
         arr = {
-            'doctor_id': 10,
+            "email": save_var.email,
+            "token": save_var.token,
             'box_data': []
         }
         for row in self.box_list:
             if row == ' ':
                 continue
             arr['box_data'].append(self.box_list[row])
-        print(arr)
-        self.delete_image()
+
+        apiObj = ac.ApiClass()
+        response = apiObj.update_report(arr)
+        print(response)
+        if response:
+            self.delete_image()
 
     def clip_screen(self):
         # self.master.withdraw()
@@ -456,7 +551,6 @@ class Gui(Frame):
             print(e)
             return e
         self.deiconify()
-        print("button clicked")
         my_path = os.path.abspath(image_name)
         return f"{my_path}"
 
