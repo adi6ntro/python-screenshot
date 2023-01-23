@@ -26,16 +26,16 @@ class Gui(Frame):
         self.num_list = []
         self.box_delete = {}
         self.cat = {
-            "Not Exposed": {'type': 1, 'num': 0},
-            "Exposed": {'type': 2, 'num': 0},
+            "Exposed": {'type': 1, 'num': 0},
+            "Not Exposed": {'type': 2, 'num': 0},
             "Periapical": {'type': 3, 'num': 0},
             "Bone Loss": {'type': 4, 'num': 0},
             "RCT": {'type': 5, 'num': 0},
             "Other": {'type': 6, 'num': 0}
         }
         self.cat_type = {
-            1: "Not Exposed",
-            2: "Exposed",
+            1: "Exposed",
+            2: "Not Exposed",
             3: "Periapical",
             4: "Bone Loss",
             5: "RCT",
@@ -143,8 +143,8 @@ class Gui(Frame):
     def create_categories(self):
         cat_frame = Frame(self.ebox_frame)
         cat_frame.columnconfigure(1, weight=1)
-        self.categories = ['Not Exposed', 'Exposed',
-                           'Periapical', 'Bone Loss', 'RCT']
+        self.categories = ['Exposed', 'Not Exposed',
+                           'Periapical', 'Bone Loss', 'RCT', 'Other']
         self.cat_var = StringVar(cat_frame)
         self.cat_var.set(self.categories[0])
         cat_label = Label(cat_frame, text='Category: ')
@@ -164,9 +164,9 @@ class Gui(Frame):
                 'box_type': 0,
                 'box_num': 0,
                 'coordinate': [0, 0, 0, 0],
-                'confidence': 0,
-                'distance': 0,
-                'overlap': 0,
+                'confidence': "",
+                'distance': "",
+                'overlap': "",
             }
         }
         self.box_list_var = StringVar(box_list_frame)
@@ -229,16 +229,17 @@ class Gui(Frame):
         self.rect = None
 
     def color_type(self, color_type):
-        if color_type == "Not Exposed":
+        # F09B1A#737373
+        if color_type == "Exposed":
             color = (255, 0, 0)
-        elif color_type == "Exposed":
+        elif color_type == "Not Exposed":
             color = (0, 0, 255)
         elif color_type == "Periapical":
             color = (0, 255, 0)
         elif color_type == "Bone Loss":
-            color = (0, 153, 255)
+            color = (255, 153, 0)
         elif color_type == "RCT":
-            color = (255, 82, 141)
+            color = (141, 82, 255)
         else:
             color = (255, 0, 0)
         print(color_type)
@@ -301,9 +302,9 @@ class Gui(Frame):
         )]['num'] - 1
         self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['coordinate'] = list(
             coordinates)
-        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['confidence'] = 0
-        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['distance'] = 0
-        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['overlap'] = 0
+        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['confidence'] = ""
+        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['distance'] = ""
+        self.box_list[f"{self.cat_var.get()} {self.cat[self.cat_var.get()]['num']}"]['overlap'] = ""
 
         self.recreate_box_list()
 
@@ -343,17 +344,6 @@ class Gui(Frame):
         self.num_list.clear()
         self.box_list[' '] = last_val
 
-        coordinate_non_exposed = "" if response['data']['non_exposed_pulp_box_position'] == "" or response['data'][
-            'non_exposed_pulp_box_position'] == "-" else response['data']['non_exposed_pulp_box_position'].split('&')
-        confidence_non_exposed = "" if response['data']['non_exposed_pulp_confidence'] == "" or response['data'][
-            'non_exposed_pulp_confidence'] == "-" else response['data']['non_exposed_pulp_confidence'].split('&')
-        distance_non_exposed = "" if response['data']['non_exposed_pulp_distance'] == "" or response['data'][
-            'non_exposed_pulp_distance'] == "-" else response['data']['non_exposed_pulp_distance'].split('&')
-        overlap_non_exposed = "" if response['data']['non_exposed_pulp_overlap'] == "" or response['data'][
-            'non_exposed_pulp_overlap'] == "-" else response['data']['non_exposed_pulp_overlap'].split('&')
-        self.get_box_data(1, coordinate_non_exposed, (dh, dw),
-                          confidence_non_exposed, distance_non_exposed, overlap_non_exposed)
-
         coordinate_exposed = "" if response['data']['exposed_pulp_box_position'] == "" or response['data'][
             'exposed_pulp_box_position'] == "-" else response['data']['exposed_pulp_box_position'].split('&')
         confidence_exposed = "" if response['data']['exposed_pulp_confidence'] == "" or response['data'][
@@ -362,8 +352,19 @@ class Gui(Frame):
             'exposed_pulp_distance'] == "-" else response['data']['exposed_pulp_distance'].split('&')
         overlap_exposed = "" if response['data']['exposed_pulp_overlap'] == "" or response['data'][
             'exposed_pulp_overlap'] == "-" else response['data']['exposed_pulp_overlap'].split('&')
-        self.get_box_data(2, coordinate_exposed, (dh, dw),
+        self.get_box_data(1, coordinate_exposed, (dh, dw),
                           confidence_exposed, distance_exposed, overlap_exposed)
+
+        coordinate_non_exposed = "" if response['data']['non_exposed_pulp_box_position'] == "" or response['data'][
+            'non_exposed_pulp_box_position'] == "-" else response['data']['non_exposed_pulp_box_position'].split('&')
+        confidence_non_exposed = "" if response['data']['non_exposed_pulp_confidence'] == "" or response['data'][
+            'non_exposed_pulp_confidence'] == "-" else response['data']['non_exposed_pulp_confidence'].split('&')
+        distance_non_exposed = "" if response['data']['non_exposed_pulp_distance'] == "" or response['data'][
+            'non_exposed_pulp_distance'] == "-" else response['data']['non_exposed_pulp_distance'].split('&')
+        overlap_non_exposed = "" if response['data']['non_exposed_pulp_overlap'] == "" or response['data'][
+            'non_exposed_pulp_overlap'] == "-" else response['data']['non_exposed_pulp_overlap'].split('&')
+        self.get_box_data(2, coordinate_non_exposed, (dh, dw),
+                          confidence_non_exposed, distance_non_exposed, overlap_non_exposed)
 
         coordinate_periapical = "" if response['data']['periapical_lesion_box_position'] == "" or response['data'][
             'periapical_lesion_box_position'] == "-" else response['data']['periapical_lesion_box_position'].split('&')
