@@ -524,10 +524,25 @@ class Gui(Frame):
             "token": save_var.token,
             'box_data': []
         }
+        print(self.box_list)
         for row in self.box_list:
             if row == ' ':
                 continue
+            dw = 1./self.img_width
+            dh = 1./self.img_height
+            box = self.box_list[row]['coordinate']
+            x = (box[0] + box[2])/2.0
+            y = (box[1] + box[3])/2.0
+            w = box[2] - box[0]
+            h = box[3] - box[1]
+            x = x*dw
+            y = y*dh
+            w = w*dw
+            h = h*dh
+            # self.box_list[row]['coordinate'] = [x, y, w, h]
+            self.box_list[row]['coordinate'] = f"{x} {y} {w} {h}"
             arr['box_data'].append(self.box_list[row])
+        print(self.box_list)
 
         apiObj = ac.ApiClass()
         response = apiObj.update_report(arr)
