@@ -236,7 +236,7 @@ class Gui(Frame):
         create_report_btn.grid(
             row=6, column=0, columnspan=2, sticky=W, padx=5, pady=5)
         open_report_btn = Button(
-            box_list_frame, text='Open New Report', command=self.open_report)  # , bootstyle="danger"
+            box_list_frame, text='Download New Report', command=self.open_report)  # , bootstyle="danger"
         open_report_btn.grid(
             row=7, column=0, columnspan=2, sticky=W, padx=5, pady=5)
         box_list_frame.grid(sticky='ew')
