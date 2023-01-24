@@ -4,13 +4,14 @@ from PIL import Image, ImageTk
 from sys import platform
 from tkinter import Tk, filedialog, Frame, Button, Canvas, Label, Entry, LabelFrame, Scrollbar, Text, StringVar, OptionMenu, messagebox, E, W, Y, X, BOTH, LEFT, RIGHT, BOTTOM, VERTICAL, DISABLED
 from ttkbootstrap.constants import *
+import cv2
+import io
 import pyscreenshot as ImageGrab
 import os
-import ttkbootstrap as ttk
-import io
-import cv2
-import utils.ApiClass as ac
 import save_var
+import ttkbootstrap as ttk
+import utils.ApiClass as ac
+import webbrowser
 
 os.environ["PATH"] += ":/usr/local/bin/gs"
 
@@ -25,6 +26,7 @@ class Gui(Frame):
     #                         command=lambda: controller.show_frame("PageTwo"))
         self.num_list = []
         self.box_delete = {}
+        self.url_id = ''
         self.cat = {
             "Exposed": {'type': 1, 'num': 0},
             "Not Exposed": {'type': 2, 'num': 0},
@@ -233,6 +235,10 @@ class Gui(Frame):
             box_list_frame, text='Create New Report', command=self.generate_report)  # , bootstyle="danger"
         create_report_btn.grid(
             row=6, column=0, columnspan=2, sticky=W, padx=5, pady=5)
+        open_report_btn = Button(
+            box_list_frame, text='Open New Report', command=self.open_report)  # , bootstyle="danger"
+        open_report_btn.grid(
+            row=7, column=0, columnspan=2, sticky=W, padx=5, pady=5)
         box_list_frame.grid(sticky='ew')
 
     def outline_change(self, *args):
@@ -545,6 +551,9 @@ class Gui(Frame):
         response = apiObj.update_report(arr)
         if response:
             self.delete_image()
+
+    def open_report(self):
+        webbrowser.open_new_tab("https://swc-dent.com/"+self.url_id)
 
     def clip_screen(self):
         # self.master.withdraw()
