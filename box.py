@@ -101,7 +101,7 @@ class Gui(Frame):
     def create_btn(self):
         self.ebox_frame = Frame(self.master_canvas, padx=20, pady=20)
         self.master_canvas.create_window(
-            (200, 230), window=self.ebox_frame)
+            (200, 250), window=self.ebox_frame)
         btn = Frame(self.ebox_frame)
         self.select = Button(
             btn, text="Open report", command=self.select_image)  # , bootstyle="info"
@@ -565,19 +565,19 @@ class Gui(Frame):
             img = Image.open(image_name)
             resized = img.resize((30, 30), Image.Resampling.LANCZOS)
             photo = ImageTk.PhotoImage(resized)
-            self.logo.configure(image=photo)
-            self.canvas_top.create_window(150, 20, window=self.logo)
+            # self.logo.configure(image=photo)
+            # self.canvas_top.create_window(150, 20, window=self.logo)
 
         except Exception as e:
             print(e)
             return e
-        self.deiconify()
+        self.controller.deiconify()
         my_path = os.path.abspath(image_name)
         return f"{my_path}"
 
     def hide_window(self):
-        self.withdraw()
-        self.after(1000, self.get_fullscreen)
+        self.controller.withdraw()
+        self.controller.after(1000, self.get_fullscreen)
 
     def get_fullscreen(self):
         my_path = self.clip_screen()
