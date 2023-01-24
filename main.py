@@ -83,4 +83,7 @@ if __name__ == "__main__":
     app.geometry('%dx%d+%d+%d' % (w, h, x, y))
 
     # app.call('wm', 'attributes', '.', '-topmost', '1')
+    # app = ttk.Window()
+    # app.resizable(0, 0)
+    # app.overrideredirect(True)
     app.mainloop()

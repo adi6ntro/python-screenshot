@@ -53,6 +53,7 @@ class Gui(Frame):
         self.screenshot_widgets()
         self.create_canvas()
         self.create_btn()
+        self.create_patients()
         self.create_categories()
         self.create_box_list()
 
@@ -139,6 +140,18 @@ class Gui(Frame):
         my_scrollbarx.configure(command=self.canvas.xview)
         self.canvas.configure(yscrollcommand=my_scrollbary.set)
         self.canvas.configure(xscrollcommand=my_scrollbarx.set)
+
+    def create_patients(self):
+        patients_frame = Frame(self.ebox_frame)
+        patients_frame.columnconfigure(1, weight=1)
+        self.patients_var = StringVar(patients_frame)
+        self.patients_var.set(save_var.patients[0])
+        patients_label = Label(patients_frame, text='Patient: ')
+        patients_label.grid(sticky=E + W, padx=5, pady=5)
+        self.patients_inp = OptionMenu(
+            patients_frame, self.patients_var, *save_var.patients)
+        self.patients_inp.grid(row=0, column=1, sticky=E + W, padx=5, pady=5)
+        patients_frame.grid(sticky='ew')
 
     def create_categories(self):
         cat_frame = Frame(self.ebox_frame)
@@ -229,7 +242,6 @@ class Gui(Frame):
         self.rect = None
 
     def color_type(self, color_type):
-        # F09B1A#737373
         if color_type == "Exposed":
             color = (255, 0, 0)
         elif color_type == "Not Exposed":
@@ -242,7 +254,6 @@ class Gui(Frame):
             color = (141, 82, 255)
         else:
             color = (255, 0, 0)
-        print(color_type)
         self.outline = "#%02x%02x%02x" % color
 
     def box_list_change(self, *args):
@@ -287,7 +298,7 @@ class Gui(Frame):
         curX = self.canvas.canvasx(event.x)
         curY = self.canvas.canvasy(event.y)
         coordinates = self.start_x, self.start_y, curX, curY
-        # print(coordinates)
+
         cek = self.canvas.create_rectangle(
             coordinates, outline=self.outline, width=3)
 
@@ -311,7 +322,7 @@ class Gui(Frame):
     def select_image(self):
         self.canvas.delete("all")
         file_path = filedialog.askopenfilename()
-        # file_path = "919.jpg"
+
         apiObj = ac.ApiClass()
         response = apiObj.aitools(
             file_path, save_var.email, save_var.token, "1")
@@ -335,9 +346,6 @@ class Gui(Frame):
         #                   width=bg_image.width())
 
         self.num = cek
-
-        # with open("919.txt") as file:
-        #     self.lines = [line.rstrip() for line in file]
 
         last_val = self.box_list[' ']
         self.box_list.clear()
@@ -481,23 +489,13 @@ class Gui(Frame):
     def update_box_opt(self):
         if self.box_list_var.get() == '' or self.box_list_var.get() == ' ':
             return
-        confidence = float(self.confidence_str.get())
-        distance = float(self.distance_str.get())
-        overlap = float(self.overlap_str.get())
+        confidence = self.confidence_str.get()
+        distance = self.distance_str.get()
+        overlap = self.overlap_str.get()
         self.box_list[self.box_list_var.get()]['confidence'] = confidence
         self.box_list[self.box_list_var.get()]['distance'] = distance
         self.box_list[self.box_list_var.get()]['overlap'] = overlap
         self.recreate_box_list()
-        # try:
-        #     confidence = float(self.confidence_str.get())
-        #     distance = float(self.distance_str.get())
-        #     overlap = float(self.overlap_str.get())
-        #     self.box_list[self.box_list_var.get()]['confidence'] = confidence
-        #     self.box_list[self.box_list_var.get()]['distance'] = distance
-        #     self.box_list[self.box_list_var.get()]['overlap'] = overlap
-        #     self.recreate_box_list()
-        # except ValueError:
-        #     print('Wrong Value')
 
     def recreate_box_list(self):
         menu = self.box_list_inp["menu"]
@@ -522,9 +520,9 @@ class Gui(Frame):
         arr = {
             "email": save_var.email,
             "token": save_var.token,
+            "patient": self.patients_var.get(),
             'box_data': []
         }
-        print(self.box_list)
         for row in self.box_list:
             if row == ' ':
                 continue
@@ -542,11 +540,9 @@ class Gui(Frame):
             # self.box_list[row]['coordinate'] = [x, y, w, h]
             self.box_list[row]['coordinate'] = f"{x} {y} {w} {h}"
             arr['box_data'].append(self.box_list[row])
-        print(self.box_list)
 
         apiObj = ac.ApiClass()
         response = apiObj.update_report(arr)
-        print(response)
         if response:
             self.delete_image()
 
@@ -580,25 +576,3 @@ class Gui(Frame):
         self.label.config(bd=0, state='readonly')
         if platform == "win32":
             os.system(my_path)
-
-
-# if __name__ == "__main__":
-#     if not (os.path.isdir("snips")):
-#         os.mkdir("snips")
-#     if not (os.path.isdir("new_image")):
-#         os.mkdir("new_image")
-#     root = Tk()
-#     # root = ttk.Window()
-#     root.title("SWC Screenshot App")
-#     root.iconbitmap("swc.ico")
-#     # root.resizable(0, 0)
-#     my_gui = Gui(root)
-#     root.call('wm', 'attributes', '.', '-topmost', '1')
-#     # root.overrideredirect(True)
-#     root.mainloop()
-
-
-# {
-# doctor_id: 10,
-# box_data:[{ type box (numeric-readonly), nomor box (numeric-readonly), koordinat (readonly), confidence (numeric), distance (numeric), overlap (numeric)}],
-# }

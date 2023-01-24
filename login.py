@@ -37,13 +37,19 @@ class Login(Frame):
         if response['code'] != '00':
             messagebox.showerror(title="Error", message=response['message'])
         else:
+            # response = apiObj.login(self.username_entry.get(),
+            #                         self.password_entry.get())
+            # if response['code'] != '00':
+            #     messagebox.showerror(title="Error", message=response['message'])
+            # else:
+            #     messagebox.showinfo(title="Login Success",
+            #                         message="You successfully logged in.")
             messagebox.showinfo(title="Login Success",
                                 message="You successfully logged in.")
             save_var.name = response['data']['name']
             save_var.email = response['data']['email']
             save_var.token = response['data']['token']
+            # save_var.patients = response['data']['token']
             self.controller.show_frame("Gui")
-            # print(
-            #     f"{self.controller.get_screenwidth()}x{self.controller.get_screenheight()}")
             self.controller.geometry(
                 f"{save_var.screen_width}x{save_var.screen_width}+0+0")
